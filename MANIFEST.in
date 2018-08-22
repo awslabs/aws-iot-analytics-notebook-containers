@@ -1,0 +1,11 @@
+global-exclude *.ipynb
+global-exclude *.py[cod]
+global-exclude __pycache__
+global-exclude .git
+global-exclude .ipynb_checkpoints
+global-exclude .DS_Store
+global-exclude *.sh
+
+include README.md
+include LICENSE
+recursive-include iota_notebook_containers/* *.py *.css *.js *.png
