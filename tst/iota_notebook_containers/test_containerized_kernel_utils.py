@@ -12,3 +12,6 @@ class TestContainerizedKernelUtils(unittest.TestCase):
         with_prefix = "containerized_conda_python3"
         without_prefix = "conda_python3"
         self.assertEqual(without_prefix, remove_containerized_prefix(with_prefix))
+
+if __name__ == '__main__':
+    unittest.main()

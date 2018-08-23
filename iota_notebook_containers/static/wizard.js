@@ -210,6 +210,7 @@ define([
     $("#" + STEP2_NEXT_BUTTON_ID).on("click", function(){
       if (!step2.reportErrorsIfNotValid()){
         loadNextTab(this);
+        step3.selectTopRowIfNoRowsSelected(STEP3_NEXT_BUTTON_ID);
       }
       return false;   
     });

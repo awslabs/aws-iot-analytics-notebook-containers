@@ -19,7 +19,7 @@ from unittest.mock import patch, MagicMock
 from iota_notebook_containers.containerization_status_log_entry import ContainerizationStatusLogEntry
 from iota_notebook_containers.kernel_image_creator import KernelImageCreator, ImageCreationStatus
 from iota_notebook_containers.export_to_ecr import CreateNewRepoHandler, ListRepoHandler, \
-    UploadToRepoHandler, IsContainerizationOngoingHandler, ImageUploadStatus, ECR, LATEST_TAG, \
+    UploadToRepoHandler, IsContainerizationOngoingHandler, ExtensionLastModifiedHandler, ImageUploadStatus, ECR, LATEST_TAG, \
     INTERIM_TAG
 
 @moto.mock_ecr
@@ -60,6 +60,7 @@ class TestCreateNewRepoHandler(AsyncHTTPTestCase):
             (r"/upload_to_repo", UploadToRepoHandler),
             (r"/list_repos", ListRepoHandler),
             (r"/upload_to_repo/is_ongoing", IsContainerizationOngoingHandler),
+            (r"/extension_version/is_latest", ExtensionLastModifiedHandler),
         ])
         return application
 
@@ -203,7 +204,7 @@ class TestCreateNewRepoHandler(AsyncHTTPTestCase):
             with patch("docker.from_env", return_value=docker_client):
                 with patch("os.path.getmtime", return_value=notebook_modification_time):
                     with patch("logging.getLogger", return_value=mock_logger):
-                        with patch("logging.handlers.RotatingFileHandler.__init__", return_value=None):
+                        with patch("logging.FileHandler.__init__", return_value=None):
                             with patch("boto3.client", return_value=ecr_client):
                                 payload = {"repository_name": self.REPO_NAME, "variables": variables, 
                                     "container_name": self.container_name,
@@ -275,7 +276,7 @@ class TestCreateNewRepoHandler(AsyncHTTPTestCase):
         request_url = "ws://localhost:" + str(self.get_http_port()) + "/upload_to_repo"
         with patch("os.path.getmtime", return_value=time.time()):
             with patch("logging.getLogger", return_value=mock_logger):
-                with patch("logging.handlers.RotatingFileHandler.__init__", return_value=None):
+                with patch("logging.FileHandler.__init__", return_value=None):
                     ws = yield tornado.websocket.websocket_connect(request_url)
                     ws.write_message(json.dumps(payload))
                     while True:
@@ -648,6 +649,27 @@ class TestCreateNewRepoHandler(AsyncHTTPTestCase):
         error_msg = "The following fields were not specified: notebook_path."
         expected_msg = ContainerizationStatusLogEntry.of_image_creation(None, error_msg=error_msg, progress=0)
         self.assertEqual(expected_msg, observed_resp)
+
+    @tornado.testing.gen_test
+    def test_GIVEN_is_latest_version_WHEN_fetch_extension_version_is_latest_THEN_true(self):
+        last_modified = "234233.0"
+        mock_extension_last_modified_manager = MagicMock()
+        mock_extension_last_modified_manager.get_s3_extension_last_modified_date = lambda: last_modified
+        mock_extension_last_modified_manager.get_local_extension_modified_date = lambda: last_modified
+        with patch("iota_notebook_containers.export_to_ecr.ExtensionLastModifiedManager", return_value=mock_extension_last_modified_manager):
+            response = yield self.http_client.fetch(self.get_url("/extension_version/is_latest"))
+        self.assertTrue(json.loads(response.body))
+
+    @tornado.testing.gen_test
+    def test_GIVEN_is_not_latest_version_WHEN_fetch_extension_version_is_latest_THEN_false(self):
+        last_modified_s3 = "234233.0"
+        last_modified_local = "134233.0"
+        mock_extension_last_modified_manager = MagicMock()
+        mock_extension_last_modified_manager.get_s3_extension_last_modified_date = lambda: last_modified_s3
+        mock_extension_last_modified_manager.get_local_extension_modified_date = lambda: last_modified_local
+        with patch("iota_notebook_containers.export_to_ecr.ExtensionLastModifiedManager", return_value=mock_extension_last_modified_manager):
+            response = yield self.http_client.fetch(self.get_url("/extension_version/is_latest"))
+        self.assertFalse(json.loads(response.body))         
 
 if __name__ == '__main__':
     unittest.main()

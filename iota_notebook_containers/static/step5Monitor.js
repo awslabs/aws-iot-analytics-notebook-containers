@@ -16,6 +16,7 @@ define([
   var IOT_ANALYTICS_DATASETS_PAGE = "https://console.aws.amazon.com/iotanalytics/home#/datasets";
   var COMPLETION_SYMBOL = "✅";
 
+  var CONTAINERIZATION_TIME_SECTION_ID = "step5_containerization_time_section";
   var ERROR_SECTION_ID = "step5_error_section"; 
   var IMAGE_CREATION_BAR_DIV_ID = "step5_image_creation_bar_div";
   var IMAGE_UPLOAD_BAR_DIV_ID = "step5_image_upload_bar_div";
@@ -34,11 +35,16 @@ define([
   var UPLOAD_TO_REPO_ERROR_MSG = "The containerization process has failed."
   var SUCCESS_MSG = "You can now use this notebook for scheduled analysis of your Data Sets.";
 
+  var CONTAINERIZATION_TIME_TEXT = "The containerization process typically completes within 30 minutes.";
+
   // 15 seconds
   var SOCKET_CLOSE_REPORT_ERROR_DELAY = 15000;
 
   var FORM_HTML =  '' +
     '<div> ' + 
+      '<div id="' + CONTAINERIZATION_TIME_SECTION_ID + '" class="alert alert-info fade in">' +
+        CONTAINERIZATION_TIME_TEXT +
+      '</div>' +
       '<div id="' + IMAGE_CREATION_SECTION_ID + '">' +
         'Creating Image... ' + '<span id="' + IMAGE_CREATION_COMPLETE_SECTION_ID + '"">' + COMPLETION_SYMBOL + '</span>' +
         progressBar.getHtml(IMAGE_CREATION_BAR_DIV_ID, IMAGE_CREATION_BAR_ID) +
@@ -117,6 +123,7 @@ define([
     if (exitButton){
       $("#" + exitButton).attr("disabled", false);
     }
+    $("#" + CONTAINERIZATION_TIME_SECTION_ID).fadeOut();
   };
 
   function handleUploadToRepoError(){

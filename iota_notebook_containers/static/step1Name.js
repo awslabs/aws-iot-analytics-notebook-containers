@@ -1,18 +1,29 @@
 define([
+  "./api",
   "./trim",
-], function(trim){
+], function(api, trim){
   var ID = "step1";
   var TAB_TITLE = "1. Name";
 
   var ERROR_SECTION_ID = "step1_error_section";
+  var INSTALL_SECTION_ID = "step1_install_section";
   var NAME_FIELD_ID = "step1_container_name";
   var DESCRIPTION_FIELD_ID = "step1_container_description_field";
 
-  var MAX_NAME_LENGTH = 256;
+  var MAX_NAME_LENGTH = 128;
   var MAX_DESCRIPTION_LENGTH = 1024;
+
+  var UPDATE_DOCUMENTATION_LINK = "http://docs.aws.amazon.com/iotanalytics/latest/userguide/automate.html#aws-iot-analytics-update-notebook-containerization-ext";
+
+  var INSTALL_SECTION_HTML = 'There is an update available for ' +
+    'this containerization extension. The update process is documented ' +
+    '<a class="alert-link" href="' + UPDATE_DOCUMENTATION_LINK +' ">here</a>.';
 
   var FORM_HTML = '' +
      '<div class="container-fluid" style="word-wrap:break-word;">' +
+        '<div id="' + INSTALL_SECTION_ID + '" class="alert alert-info fade in" style="display: none;">' + 
+           INSTALL_SECTION_HTML +
+        '</div>' +
         '<div class="row">' +
           '<div class="form-group" style="position: static;">' +
             '<label><strong>Container Name<font color="red">  *  </font></strong></label>' +
@@ -31,6 +42,7 @@ define([
     $("#" + nextButtonId).attr("disabled", true);
     $("#" + NAME_FIELD_ID + ", #" + DESCRIPTION_FIELD_ID).on("input", function(){
       setNextButtonStatusAndErrorFieldBasedOnNameAndDescription(nextButtonId)});
+    revealInstallButtonIfPluginNotUpToDate();
   };
 
   function setNextButtonStatusAndErrorFieldBasedOnNameAndDescription(nextButtonId){
@@ -69,9 +81,26 @@ define([
     var name = getName();
     var description = getDescription();
 
-    if (name && name.length > MAX_NAME_LENGTH){
+    if (name !== undefined && /\s/.test(name)){
+      return "The name cannot contain spaces.";
+    }
+
+    if (!name){
+      return "You must specify a name.";
+    }
+
+    if (name.length > MAX_NAME_LENGTH){
       return "The max name length is " + MAX_NAME_LENGTH +
         ". " + name + " is too long.";
+    }
+
+
+    if (/^[-_]+[\w-]*$/.test(name)){
+      return "The name cannot start with an underscore or dash.";
+    }
+
+    if (! /^[a-zA-Z0-9]+[\w-]*$/.test(name)){
+      return "The name must be valid ASCII. It may only contain letters, numbers, underscores, and dashes.";
     }
 
     if (description && description.length > MAX_DESCRIPTION_LENGTH){
@@ -80,6 +109,19 @@ define([
     }
   };
 
+  function revealInstallButtonIfPluginNotUpToDate(){
+    $.when(api.getExtensionIsLatestVersion()).then(
+      function(isLatestVersion){
+        if (!isLatestVersion){
+          revealInstallSection();
+        }
+      });
+  };
+
+  function revealInstallSection(){
+    $("#" + INSTALL_SECTION_ID).fadeIn();
+  };
+  
 return {ID: ID, FORM_HTML: FORM_HTML, TAB_TITLE: TAB_TITLE, onModalOpen: onModalOpen,
   getName: getName, getDescription:getDescription};
 });

@@ -12,6 +12,8 @@ define([
   var REPO_TABLE_ID = "step3_repo_list";
 
   var NO_REPOSITORIES_MSG = "There are no matching repositories.";
+
+  var DATATABLE_CURRENT_PAGE = "current";
   var DATATABLE_LANGUAGE = {
     "lengthMenu": "Display _MENU_ repositories per page",
     "zeroRecords": NO_REPOSITORIES_MSG,
@@ -20,6 +22,7 @@ define([
     "infoFiltered": "(filtered from _MAX_ total repositories)"
   };
   var DATATABLE_OPTIONS = "lfrtip";
+  var DATATABLE_PAGE_LENGTH = 5;
   var DATATABLE_REPOS_PER_PAGE_SUFFIX = "_length";
   var DATATABLE_SEARCH_SUFFIX = "_filter";
 
@@ -34,6 +37,8 @@ define([
     'your Sagemaker Execution Role has access to AWS ECR.';
   var LIST_REPO_FAILED_MSG = 'Failed to fetch repositories. Please verify the ' + 
     'Sagemaker instance has sufficient ECR privleges.';
+
+  var DIFFERENT_REPOS_TEXT = "Please upload different notebooks to different repositories.";
 
   var ID = "step3";
   var TAB_TITLE = "3. Select AWS ECR Repository";
@@ -56,7 +61,7 @@ define([
     '<div id="' + ID + '">' + 
       '<div class="input-group-btn" align="center">' +
       '</div>' +
-
+      '<div class="alert alert-info"> ' + DIFFERENT_REPOS_TEXT + '</div>' +
       '<table id="' + REPO_TABLE_ID + '" class="table table-bordered" style="width:100%;word-wrap:break-word;">' +
           '<thead>' +
             '<tr>' +
@@ -69,7 +74,7 @@ define([
     '<br> <div id="' + ERROR_SECTION_ID + '" class="alert alert-danger fade in">' + '</div>';
 
   function onModalOpen(nextButtonId){
-    createTable();
+    getOrCreateTable();
     replaceReposPerPageWithRepoCreateButton();
     addPlaceholderToSearchBox();
     disableNext(nextButtonId);
@@ -89,43 +94,66 @@ define([
     });
   };
 
-  function rowOnClick(clicked, nextButtonId){
-    if ($(clicked).hasClass(SELECTED)){
-      $(clicked).removeClass(SELECTED);
+  function getSelectedRows(){
+    return this.dataTable.rows(SELECTED_ROW_SELECTOR).nodes();
+  };
+
+  function clearSelectedRows(nextButtonId){
+    var selectedRows = getSelectedRows();
+
+    for (i=0; i<selectedRows.length; i++){
+      $(selectedRows[i]).removeClass(SELECTED);
+    }
+    updateNextButtonStatus(nextButtonId);
+  };
+
+  function selectRow(row, nextButtonId){
+    clearSelectedRows(nextButtonId);
+    $(row).addClass(SELECTED);
+    updateNextButtonStatus(nextButtonId);
+  };
+
+  function updateNextButtonStatus(nextButtonId){
+    var repository = getRepository();
+    if (repository && repository.length !== 0){
+      enableNext(nextButtonId);
+    } else{
       disableNext(nextButtonId);
     }
-    else {
-      $("#" + REPO_TABLE_ID + " " + SELECTED_ROW_SELECTOR).removeClass(SELECTED);
-      $(clicked).addClass(SELECTED);
-      var repository = getRepository();
-      if (repository && repository.length !== 0){
-        enableNext(nextButtonId);
-      }
+  };
+
+  function rowOnClick(clicked, nextButtonId){
+    var alreadySelected = $(clicked).hasClass(SELECTED);
+    clearSelectedRows(nextButtonId);
+    if (! alreadySelected){
+      selectRow(clicked, nextButtonId);
     }
   };
 
   function getRepository(){
-    var repository = $("#" + REPO_TABLE_ID + " " + SELECTED_ROW_SELECTOR).text();
-    // when there are no repositories, there is a row populated with a no
-    // repositories message. if the user selected that row, that message will
-    // get returned by the line above, but that message is not actually a repository.
-    // this logic assumes that users cannot create a repository matching the
-    // no repositories message.
-    if (repository === NO_REPOSITORIES_MSG){
-      return "";
-    } else {
-      return trim.trimValueIfPossible(repository);
+    var selectedRows = getSelectedRows();
+    if (selectedRows.length > 0){
+      var repository = $(selectedRows[0]).text();
+      // when there are no repositories, there is a row populated with a no
+      // repositories message. if the user selected that row, that message will
+      // get returned by the line above, but that message is not actually a repository.
+      // this logic assumes that users cannot create a repository matching the
+      // no repositories message.
+      if (repository !== NO_REPOSITORIES_MSG){
+        return trim.trimValueIfPossible(repository);
+      }
     }
+    return "";
   };
 
   function createRepoOnClick(nextButtonId){
-    $("#" + REPO_TABLE_ID + " " + SELECTED_ROW_SELECTOR).removeClass(SELECTED);
+    clearSelectedRows(nextButtonId);
     disableNext(nextButtonId);    
     repoName = trim.trimValueIfPossible($("#" + CREATE_REPO_TEXTBOX_ID).val());
     if (! repoName){
       reportError("You must specify a repository name.");
     } else  {
-      createRepo(repoName);
+      createRepo(repoName, nextButtonId);
     }
   };
 
@@ -137,22 +165,26 @@ define([
     $("#" + nextButtonId).attr("disabled", true);
   }
 
-  function createRepo(repoName){
+  function createRepo(repoName, nextButtonId){
     $.when(api.createRepo(repoName)).then(
       function(){
         fadeOutErrorSection();
         addAndFilterForRepo(repoName);
+        selectTopRowIfNoRowsSelected(nextButtonId);
       },
       function(){
         reportError(CREATE_REPO_FAILURE_MSG)
       });
   };
 
-  function createTable(){
+  function getOrCreateTable(){
     this.dataTable = $("#" + REPO_TABLE_ID).DataTable({
       language: DATATABLE_LANGUAGE,
       dom: DATATABLE_OPTIONS,
+      pageLength: DATATABLE_PAGE_LENGTH,
+      retrieve: true,
     });
+    return this.dataTable;
   };
 
   function fillTable(){
@@ -177,7 +209,22 @@ define([
 
   function addAndFilterForRepo(repoName){
     this.dataTable.row.add([repoName]);
-    this.dataTable.search(repoName).draw();
+    var repoRegex = "^" + repoName + "$";
+    this.dataTable.search(repoRegex, {regex: true}).draw();
+  };
+
+  function selectTopRowIfNoRowsSelected(nextButtonId){
+    // if a row hasn't been selected, select the first one
+    // this makes the selection process more obvious without
+    // risking losing the user's previous input
+    if (! getRepository()){
+      var dt = getOrCreateTable();
+      var currentPageRows = dt.rows({page: DATATABLE_CURRENT_PAGE}).nodes();
+      if (currentPageRows.length > 0){
+        var row = currentPageRows[0];
+        selectRow(row, nextButtonId);
+      }
+    }
   };
 
   function replaceReposPerPageWithRepoCreateButton(){
@@ -208,5 +255,6 @@ define([
   };
 
 return {ID: ID, FORM_HTML: FORM_HTML, TAB_TITLE: TAB_TITLE,
-  onModalOpen: onModalOpen, getRepository: getRepository};
+  onModalOpen: onModalOpen, getRepository: getRepository, 
+  selectTopRowIfNoRowsSelected: selectTopRowIfNoRowsSelected};
 });

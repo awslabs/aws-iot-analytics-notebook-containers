@@ -4,6 +4,7 @@ define([
   "base/js/utils",
 ], function(Jupyter, $, utils){
   var CREATE_REPO_ENDPOINT = "create_repo";
+  var EXTENSION_VERSION_ENDPOINT = "extension_version/is_latest";
   var IS_CONTAINERIZATION_ONGOING_ENDPOINT = "upload_to_repo/is_ongoing";
   var LIST_REPOS_ENDPOINT = "list_repos";
   var UPLOAD_TO_REPO_ENDPOINT = "upload_to_repo";
@@ -41,6 +42,11 @@ define([
     var requestUrl = utils.url_path_join(baseUrl, LIST_REPOS_ENDPOINT);
     payload = next_token === null ? {} : {NEXT_TOKEN_FIELD: next_token};
     return $.getJSON(requestUrl, payload);
+  };
+
+  function getExtensionIsLatestVersion(){
+    var requestUrl = utils.url_path_join(baseUrl, EXTENSION_VERSION_ENDPOINT);
+    return $.getJSON(requestUrl);
   };
 
   function isContainerizationOngoing(){
@@ -88,5 +94,6 @@ define([
   }
 
   return {createRepo: createRepo, getRepos: getRepos, uploadToRepo: uploadToRepo,
-    listVariables: listVariables, isContainerizationOngoing: isContainerizationOngoing}
+    listVariables: listVariables, isContainerizationOngoing: isContainerizationOngoing,
+    getExtensionIsLatestVersion: getExtensionIsLatestVersion}
 });

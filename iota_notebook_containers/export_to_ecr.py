@@ -13,6 +13,7 @@ from iota_notebook_containers.containerization_status_log_entry import Container
 from iota_notebook_containers.containerization_status_logger_builder import ContainerizationStatusLoggerBuilder
 from iota_notebook_containers.export_to_ecr_params_validator import ImageCreationAndUploadParamsValidator
 from iota_notebook_containers.kernel_image_creator import KernelImageCreator
+from iota_notebook_containers.extension_last_modified_manager import ExtensionLastModifiedManager
 
 from collections import namedtuple
 from http import HTTPStatus
@@ -78,6 +79,21 @@ class IsContainerizationOngoingHandler(RequestHandler):
     @classmethod
     def is_containerization_ongoing(cls):
         return UploadToRepoHandler.containerization_lock.locked()
+
+
+class ExtensionLastModifiedHandler(RequestHandler):
+    def get(self):
+        try:
+            self.write(json.dumps(self.is_latest_version()))
+        except:
+            logger.exception()
+            self.write_error("Failed to check extension version.")
+
+    def is_latest_version(self):
+        extension_last_modified_manager = ExtensionLastModifiedManager()
+        s3_extension_last_modified = extension_last_modified_manager.get_s3_extension_last_modified_date()
+        current_extension_last_modified = extension_last_modified_manager.get_local_extension_modified_date()
+        return current_extension_last_modified and s3_extension_last_modified == current_extension_last_modified
 
 
 class UploadToRepoHandler(websocket.WebSocketHandler):

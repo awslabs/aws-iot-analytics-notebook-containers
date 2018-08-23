@@ -1,7 +1,7 @@
 from notebook.utils import url_path_join
 
 from iota_notebook_containers.export_to_ecr import CreateNewRepoHandler, ListRepoHandler, \
-    UploadToRepoHandler, IsContainerizationOngoingHandler
+    UploadToRepoHandler, IsContainerizationOngoingHandler, ExtensionLastModifiedHandler
 from iota_notebook_containers.internal_log import create_logger
 
 create_logger(__name__)
@@ -26,5 +26,6 @@ def load_jupyter_server_extension(nb_server_app):
         (url_path_join(web_app.settings['base_url'], r'/upload_to_repo'), UploadToRepoHandler), 
         (url_path_join(web_app.settings['base_url'], r'/upload_to_repo/is_ongoing'),
             IsContainerizationOngoingHandler),
+        (url_path_join(web_app.settings['base_url'], r'/extension_version/is_latest'), ExtensionLastModifiedHandler),
         (url_path_join(web_app.settings['base_url'], r'/list_repos'), ListRepoHandler)
     ])
