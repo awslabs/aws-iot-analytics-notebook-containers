@@ -54,7 +54,7 @@ class CreateNewRepoHandler(RequestHandler):
 
 class ListRepoHandler(RequestHandler):
     def get(self):
-        next_token = self.get_body_argument("next_token", None)
+        next_token = self.get_argument("next_token", None)
         self.write(self.list_repos(next_token))
 
     @classmethod
@@ -86,8 +86,7 @@ class ExtensionLastModifiedHandler(RequestHandler):
         try:
             self.write(json.dumps(self.is_latest_version()))
         except:
-            logger.exception()
-            self.write_error("Failed to check extension version.")
+            logger.exception("Caught unhandled exception while checking extension version.")
 
     def is_latest_version(self):
         extension_last_modified_manager = ExtensionLastModifiedManager()
@@ -167,7 +166,7 @@ class UploadToRepoHandler(websocket.WebSocketHandler):
             last_status.error_msg = CONTAINERIZATION_UNHANDLED_ERROR_MSG
             last_status.error_trace = traceback.format_exc()
             self.log_and_write_status(containerization_status_logger, last_status)
-            logger.exception()
+            logger.exception("Caught unhandled exception while creating or uploading image.")
             raise
         finally:
             self.close(HTTPStatus.OK)

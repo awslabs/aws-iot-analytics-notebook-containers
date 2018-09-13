@@ -16,6 +16,7 @@ import tarfile
 import traceback
 
 from collections import namedtuple
+from hurry.filesize import size
 from io import BytesIO
 from pathlib import Path
 
@@ -38,7 +39,14 @@ class KernelImageCreator(object):
     NOTEBOOK_EXECUTION_FILEPATH = "/home/ec2-user/iota_run_nb.py"
     NOTEBOOK_PATH_ENV_VAR = "NOTEBOOK_PATH"
     OUTPUT_IMAGE = "output_image"
-    SPACE_REQUIREMENT_FUDGE_BYTES = 1024 * 1024 * 1024 # 1 gb
+    SPACE_REQUIREMENT_FUDGE_BYTES = 10 * 1024 * 1024 # 10 mb
+    # we multiply by 1.9 because the data will be duplicated while it is stored in
+    # both the container and the image. this is a conservative estimate because the
+    # image is compressed. a quick empirical measure found the space use to be
+    # 1.45 times the disk space.
+    # 2x would be safer, but that would block instances with the current amount
+    # of free space from containerizing images
+    REQUIRED_SPACE_PER_FILES_SPACE = 1.9
 
     logger = logging.getLogger(__name__)
     docker_client = docker.from_env(timeout=DOCKER_TIMEOUT)
@@ -46,6 +54,8 @@ class KernelImageCreator(object):
     @classmethod
     def create(cls, containerized_kernel, notebook_path):
         try:
+            cls.logger.info("Clearing any pre-existing output images or containers")
+            cls._delete_output_container_and_image()
             kernel = remove_containerized_prefix(containerized_kernel)
             cls._copy_notebook_execution_file_to_dest()
             python_executable = cls._get_env_python_executable(kernel)
@@ -75,8 +85,6 @@ class KernelImageCreator(object):
                 total_copied += cls._get_total_size_of_files(filepaths)
                 progress = int(100*float(total_copied)/total_to_copy)
                 yield ImageCreationStatus(progress=progress, image=None, error_msg=None, error_trace=None)
-            cls.logger.info("Clearing any pre-existing output images or containers")
-            cls._delete_output_container_and_image()
 
             cls.logger.info("Writing the container to an image.")
             interim_container.commit(cls.OUTPUT_IMAGE,
@@ -85,7 +93,7 @@ class KernelImageCreator(object):
             image = cls.docker_client.images.get(cls.OUTPUT_IMAGE).id
             yield ImageCreationStatus(progress=100, image=image, error_msg=None, error_trace=None)
         except Exception as exception:
-            cls.logger.exception("Caught unhandled exception: ")
+            cls.logger.exception("Caught unhandled exception while creating the image.")
             yield ImageCreationStatus(progress=0, image=None, error_msg=cls.FAILURE_MSG,
                 error_trace=traceback.format_exc())
             raise
@@ -129,15 +137,25 @@ class KernelImageCreator(object):
 
     @classmethod
     def _get_message_if_space_insufficient(cls, paths_to_copy):
-        total_bytes_to_copy = cls._get_total_size_of_files(paths_to_copy)
+        INSUFFIENT_SPACE_ERROR_FMT = "There is insufficient space remaining on this instance to " + \
+        "containerize this notebook. Containerization would require {} of additional space."
+
+        files_to_copy_bytes = cls._get_total_size_of_files(paths_to_copy)
         _, _, free_space_bytes = shutil.disk_usage("/")
 
-        minimum_bytes = total_bytes_to_copy + cls.SPACE_REQUIREMENT_FUDGE_BYTES
+        required_bytes = int(cls.REQUIRED_SPACE_PER_FILES_SPACE * files_to_copy_bytes
+            ) + cls.SPACE_REQUIREMENT_FUDGE_BYTES
 
-        if free_space_bytes < minimum_bytes:
-            return "This instance has insufficient free space to run containerization. " \
-            + "It has {} bytes, but it needs {} bytes.".format(
-                    free_space_bytes, minimum_bytes)
+        if required_bytes > free_space_bytes:
+            cls.logger.info("Insufficient space to containerize. Has {} bytes, requires {} bytes, " +
+                "with fudge space requires {} bytes.".format(
+                    free_space_bytes, files_to_copy_bytes, required_bytes))
+
+            additional_required_bytes = required_bytes - free_space_bytes
+            human_readable_additional_space_required = size(required_bytes - free_space_bytes)
+            return INSUFFIENT_SPACE_ERROR_FMT.format("{} bytes ({})".format(
+                additional_required_bytes, human_readable_additional_space_required))
+            
     @classmethod
     def _create_interim_container(cls, original_container, kernel, notebook_path):
         cls._delete_interim_container()

@@ -1,6 +1,7 @@
 import os
 import ast
 import asttokens
+import io
 import json
 import boto3
 import nbformat
@@ -23,7 +24,7 @@ class Context(object):
         self.variables = params['Variables']
         context = params['Context']
         notebook_path = context.get('Analysis', os.environ.get('NOTEBOOK_PATH'))
-        with open(notebook_path) as f:
+        with io.open(notebook_path, encoding='utf-8') as f:
             self.nb = nbformat.read(f, as_version=nbformat.NO_CONVERT)
         self.notebook_dir  = os.path.dirname(notebook_path)
         self.variables = params['Variables']

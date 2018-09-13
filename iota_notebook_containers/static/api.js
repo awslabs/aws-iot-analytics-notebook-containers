@@ -40,7 +40,8 @@ define([
 
   function getRepos(next_token){
     var requestUrl = utils.url_path_join(baseUrl, LIST_REPOS_ENDPOINT);
-    payload = next_token === null ? {} : {NEXT_TOKEN_FIELD: next_token};
+    payload = {}
+    payload[NEXT_TOKEN_FIELD] = next_token;
     return $.getJSON(requestUrl, payload);
   };
 

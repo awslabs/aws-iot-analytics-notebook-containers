@@ -99,6 +99,6 @@ if __name__ == '__main__':
         KernelContainerCreator(constants.CONTAINER_NAME).recreate()
         ContainerizedKernelInstaller().install()
     except:
-        logger.exception()
+        logger.exception("Caught unhandled exception while installing kernels.")
         raise
     logger.info('Installed containerized kernels')

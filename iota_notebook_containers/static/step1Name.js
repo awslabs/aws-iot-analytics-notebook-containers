@@ -17,7 +17,7 @@ define([
 
   var INSTALL_SECTION_HTML = 'There is an update available for ' +
     'this containerization extension. The update process is documented ' +
-    '<a class="alert-link" href="' + UPDATE_DOCUMENTATION_LINK +' ">here</a>.';
+    '<a class="alert-link" href="' + UPDATE_DOCUMENTATION_LINK +'">here</a>.';
 
   var FORM_HTML = '' +
      '<div class="container-fluid" style="word-wrap:break-word;">' +

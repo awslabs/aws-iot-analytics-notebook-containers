@@ -27,10 +27,11 @@ class TestKernelImageCreator(unittest.TestCase):
                 observed = KernelImageCreator._get_message_if_space_insufficient(files)
 
         # THEN
-        total_bytes_needed = len(
-            files) * size_of_each_file + KernelImageCreator.SPACE_REQUIREMENT_FUDGE_BYTES
-        expected = "This instance has insufficient free space to run containerization. " + \
-            "It has 10 bytes, but it needs {} bytes.".format(total_bytes_needed)
+        additional_required_bytes = int(KernelImageCreator.REQUIRED_SPACE_PER_FILES_SPACE * len(files)
+        * size_of_each_file) + KernelImageCreator.SPACE_REQUIREMENT_FUDGE_BYTES - free_space
+        expected = "There is insufficient space remaining on this instance to containerize this notebook. " + \
+            "Containerization would require {} bytes (10M) of additional space.".format(additional_required_bytes)
+
         self.assertEquals(expected, observed)
 
     def test_remove_prefix_with_prefix_present(self):
