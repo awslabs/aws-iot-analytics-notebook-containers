@@ -6,15 +6,19 @@ setup(
     author="Amazon Web Services",
     packages=find_packages(where=".", exclude=("test",)),
     install_requires=[
-        "boto3==1.7.15",
+        # we don't specify a version because we want to use whichever versions
+        # SageMaker pre-installs
+        "boto3",
         "docker==3.3.0",
         "environment-kernels==1.1.1",
-        "jupyter==1",
-        "tornado==5.0.2"
+        "hurry.filesize==0.9",
+        "jupyter==1.0.0",
+        "tornado==5.0.2",
     ],
     tests_require = [
+        "moto",
+        "asttokens==1.1.10",
         "freezegun==0.3.10",
-        "moto==1.3.3",
         "selenium==3.12.0",
     ],
     include_package_data=True,

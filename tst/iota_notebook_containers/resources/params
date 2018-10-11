@@ -1,0 +1,19 @@
+{
+    "Context": {
+        "OutputUris": {
+            "ipynb": "s3://my-bucket/my-key-prefix/output.ipynb",
+            "html": "s3://my-bucket/my-key-prefix/output.html"
+        }
+    },
+    "Variables": {
+        "a": 6,
+        "b": "hi",
+        "c": 7,
+        "d": true,
+        "e": 2.71828,
+        "pi": 3.14159,
+        "l": [1, 2, 3],
+        "o": {"YourField": 0},
+        "p":10
+    }
+}

@@ -16,7 +16,10 @@ define([
        'id'      : "containerize_button",
        'label'   : "Containerize",
        'icon'    : "fa-cube",
-       'callback': function(){wizard.launchModal(Jupyter.keyboard_manager)}
+       'callback': function(){
+          Jupyter.notebook.save_notebook();
+          wizard.launchModal(Jupyter.keyboard_manager);
+        }
       }
     ]);
   };

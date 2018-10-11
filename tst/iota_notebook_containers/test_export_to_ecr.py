@@ -225,7 +225,7 @@ class TestCreateNewRepoHandler(AsyncHTTPTestCase):
         # THEN
         self.assertEquals(HTTPStatus.OK, ws.close_code)
         docker_client.api.tag.assert_called_once_with(IMAGE, repository=repository_uri + ":" + INTERIM_TAG)
-        auth_config = {"username": "AWS", "password": "us-east-1-auth-token"}
+        auth_config = {"username": "AWS", "password": "012345678910-auth-token"}
         docker_client.api.push.assert_called_once_with(auth_config=auth_config, repository=repository_uri + ":" + INTERIM_TAG, stream=True)
 
         self.assertEquals(3, len(observed_output))

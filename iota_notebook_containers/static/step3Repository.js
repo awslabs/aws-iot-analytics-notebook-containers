@@ -31,12 +31,16 @@ define([
   var SELECTED = "selected";
   var SELECTED_ROW_SELECTOR = "tr.selected";
 
-  var CREATE_REPO_FAILURE_MSG = 'Failed to create repository. Please verify ' +
-    'that the repository name complies with ECR requirements. If you ' + 
-    'installed the containerization extension manually, please verify that ' + 
-    'your Sagemaker Execution Role has access to AWS ECR.';
-  var LIST_REPO_FAILED_MSG = 'Failed to fetch repositories. Please verify the ' + 
-    'Sagemaker instance has sufficient ECR privleges.';
+  var PERMISSIONS_DOCUMENTATION_LINK = 'https://docs.aws.amazon.com/iotanalytics/latest/userguide/automate.html#aws-iot-analytics-automate-permissions';
+  var PERMISSIONS_LINK_HTML = 'You can read about the required permissions ' +
+    '<a class="alert-link" href="' + PERMISSIONS_DOCUMENTATION_LINK +'">here</a>.';
+  var CREATE_REPO_FAILURE_HTML = 'Failed to create repository. Please verify ' +
+    'that the repository name complies with AWS ECR requirements and that ' +
+    'your SageMaker Execution Role provides access to AWS ECR. ' +
+    PERMISSIONS_LINK_HTML;
+  var LIST_REPO_FAILED_HTML = 'Failed to fetch repositories. Please verify that ' +
+    'your SageMaker Execution Role provides access to AWS ECR. ' +
+    PERMISSIONS_LINK_HTML;
 
   var DIFFERENT_REPOS_TEXT = "Please upload different notebooks to different repositories.";
 
@@ -173,7 +177,7 @@ define([
         selectTopRowIfNoRowsSelected(nextButtonId);
       },
       function(){
-        reportError(CREATE_REPO_FAILURE_MSG)
+        reportError(CREATE_REPO_FAILURE_HTML)
       });
   };
 
@@ -194,7 +198,7 @@ define([
         if (response.next_token !== null){
           fillTableRecursive(response.next_token);
         }
-      }, function(response){reportError(LIST_REPO_FAILED_MSG)});
+      }, function(response){reportError(LIST_REPO_FAILED_HTML)});
     };
     next_token = null;
     fillTableRecursive(next_token);
@@ -250,7 +254,7 @@ define([
   };
 
   function reportError(error){
-    $("#" + ERROR_SECTION_ID).text(error);
+    $("#" + ERROR_SECTION_ID).html(error);
     $("#" + ERROR_SECTION_ID).fadeIn();
   };
 
