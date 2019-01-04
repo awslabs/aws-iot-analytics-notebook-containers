@@ -1,6 +1,6 @@
 ## AWS IoT Analytics Notebook Containers
 
-An extension for Jupyter notebooks that allows running notebooks insider a Docker container and converting them to executable Docker images.
+An extension for Jupyter notebooks that allows running notebooks inside a Docker container and converting them to executable Docker images.
 
 ## Features
 
