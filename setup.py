@@ -13,7 +13,7 @@ setup(
         "environment-kernels==1.1.1",
         "hurry.filesize==0.9",
         "jupyter==1.0.0",
-        "tornado==5.0.2",
+        "tornado==6.3.3",
     ],
     tests_require = [
         "moto",
